@@ -1,0 +1,128 @@
+package tr.gov.voxx.car.system.adapter.in.web;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import tr.gov.voxx.car.system.adapter.in.web.data.*;
+import tr.gov.voxx.car.system.adapter.in.web.mapper.*;
+import tr.gov.voxx.car.system.application.port.in.*;
+import tr.gov.voxx.car.system.domain.entity.Adres;
+import tr.gov.voxx.car.system.domain.entity.AracKullanan;
+import tr.gov.voxx.car.system.domain.entity.Firma;
+import tr.gov.voxx.car.system.domain.entity.Iletisim;
+import tr.gov.voxx.car.system.domain.valueobject.FirmaDokumanDetayId;
+import tr.gov.voxx.car.system.domain.valueobject.FirmaId;
+
+import java.util.List;
+
+import static tr.gov.voxx.car.system.constants.EndpointPath.FIRMA_ENDPOINT_V1;
+
+@RestController
+@RequestMapping(value = FIRMA_ENDPOINT_V1)
+@RequiredArgsConstructor
+@Tag(name = "Firma API", description = "Firma CRUD işlemleri")
+public class FirmaControllerAdapter {
+
+    private final FirmaApplicationCommandPort firmaApplicationCommandPort;
+    private final FirmaApplicationQueryPort firmaApplicationQueryPort;
+
+    private final AdresApplicationQueryPort adresApplicationQueryPort;
+    private final AracKullananApplicationQueryPort aracKullananApplicationQueryPort;
+    private final IletisimApplicationQueryPort iletisimApplicationQueryPort;
+    private final AracFirmaDetayApplicationQueryPort aracFirmaDetayApplicationQueryPort;
+    private final FirmaDokumanDetayApplicationCommandPort firmaDokumanDetayApplicationCommandPort;
+    private final FirmaDokumanDetayApplicationQueryPort firmaDokumanDetayApplicationQueryPort;
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Firma Getir", description = "ID’ye göre firma verisini döner")
+    public ResponseEntity<FirmaResponse> get(@PathVariable String id) {
+        Firma firma = firmaApplicationQueryPort.get(new FirmaId(id));
+        return ResponseEntity.ok(FirmaMapper.toResponse(firma));
+    }
+
+    @GetMapping
+    @Operation(summary = "Tüm Firmalar", description = "Tüm firma listesini getirir")
+    public ResponseEntity<List<FirmaResponse>> getAll() {
+        List<Firma> firmaList = firmaApplicationQueryPort.getAll();
+        return ResponseEntity.ok(FirmaMapper.toResponseList(firmaList));
+    }
+
+    @PostMapping
+    @Operation(summary = "Firma Oluştur", description = "Yeni bir firma oluşturur")
+    public ResponseEntity<Void> create(@RequestBody FirmaRequest request) {
+        Firma firma = FirmaMapper.toFirma(request);
+        firmaApplicationCommandPort.post(firma);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Firma Güncelle", description = "Firma bilgisini günceller")
+    public ResponseEntity<Void> update(@PathVariable String id,
+                                       @RequestBody FirmaRequest request) {
+        Firma firma = FirmaMapper.toFirma(request);
+        firma.setId(new FirmaId(id));
+        firmaApplicationCommandPort.put(firma);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Firma Sil", description = "Belirtilen ID ile firma siler")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        firmaApplicationCommandPort.deleteById(new FirmaId(id));
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/adres")
+    @Operation(summary = "Firma Kaynağına Göre Adresleri Getir", description = "Belirtilen Firma ID ile ilgili bütün adreslerini getirir")
+    public ResponseEntity<List<AdresResponse>> findFirmaIdGetAllAdres(@PathVariable("id") String firmaId) {
+        List<Adres> adresList = adresApplicationQueryPort.findFirmaIdGetAll(firmaId);
+        return ResponseEntity.ok(AdresMapper.toResponseList(adresList));
+    }
+
+    @GetMapping("/{id}/arackullanan")
+    @Operation(summary = "Firma Kaynağına Göre Araç Kullananları Getir", description = "Belirtilen Firma ID ile ilgili bütün araçkullananları getirir")
+    public ResponseEntity<List<AracKullananResponse>> findFirmaIdGetAllAracKullanan(@PathVariable("id") String firmaId) {
+        List<AracKullanan> aracKullananList = aracKullananApplicationQueryPort.findFirmaIdGetAll(firmaId);
+        return ResponseEntity.ok(AracKullananMapper.toResponseList(aracKullananList));
+    }
+
+    @GetMapping("/{id}/iletisim")
+    @Operation(summary = "Firma Kaynağına Göre iletişimleri Getir", description = "Belirtilen Firma ID ile ilgili bütün iletişimleri getirir")
+    public ResponseEntity<List<IletisimResponse>> findFirmaIdGetAllIletisim(@PathVariable("id") String firmaId) {
+        List<Iletisim> iletisimList = iletisimApplicationQueryPort.findFirmaIdGetAll(firmaId);
+        return ResponseEntity.ok(IletisimMapper.toResponseList(iletisimList));
+    }
+
+    @GetMapping("/{id}/kiralanan-araclar")
+    @Operation(summary = "Firma ID ye göre kiralayan araçları getir", description = "Belirtilen Firma ID ye göre kiralayan araçları getir")
+    public ResponseEntity<List<AracFirmaDetayResponse>> kiralananAracFirmaDetay(@PathVariable("id") String firmaId) {
+        return ResponseEntity.ok(AracFirmaDetayMapper.toResponseList(
+                aracFirmaDetayApplicationQueryPort.kiralananAraclar(new FirmaId(firmaId)))
+        );
+    }
+
+    @PostMapping("/dokuman-ekle")
+    @Operation(summary = "Firma Doküman Ekle", description = "Firma doküman ekler")
+    public ResponseEntity<Void> createDokuman(@RequestBody FirmaDokumanDetayRequest request) {
+        firmaDokumanDetayApplicationCommandPort.post(FirmaDokumanDetayMapper.toFirmaDokumanDetay(request));
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/dokumanlar")
+    @Operation(summary = "Firma Kaynağına Göre Dokümanları Getir", description = "Belirtilen Firma ID ile ilgili bütün dokümanlarını getirir")
+    public ResponseEntity<List<FirmaDokumanDetayResponse>> findFirmaIdGetAllDokuman(@PathVariable("id") String firmaId) {
+        return ResponseEntity.ok(FirmaDokumanDetayMapper.toResponseList(
+                firmaDokumanDetayApplicationQueryPort.findFirmaIdGetAll(firmaId))
+        );
+    }
+
+    @DeleteMapping("/{firmaId}/dokuman-sil/{dokumanId}")
+    @Operation(summary = "Firma Doküman Sil", description = "Belirtilen Firma ID ve Doküman ID ile firma dokümanını siler")
+    public ResponseEntity<Void> deleteDokuman(@PathVariable("firmaId") String firmaId, 
+                                            @PathVariable("dokumanId") String dokumanId) {
+        firmaDokumanDetayApplicationCommandPort.deleteById(new FirmaDokumanDetayId(dokumanId));
+        return ResponseEntity.noContent().build();
+    }
+}

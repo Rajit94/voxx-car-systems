@@ -1,0 +1,78 @@
+package tr.gov.voxx.car.system.application.usecase.command;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import tr.gov.voxx.car.system.application.port.in.SigortaKaskoApplicationCommandPort;
+import tr.gov.voxx.car.system.application.port.out.SigortaKaskoPersistenceJpaPort;
+import tr.gov.voxx.car.system.domain.entity.SigortaKasko;
+import tr.gov.voxx.car.system.domain.exception.NotFoundException;
+import tr.gov.voxx.car.system.domain.valueobject.SigortaId;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class SigortaKaskoApplicationCommandUseCase implements SigortaKaskoApplicationCommandPort {
+
+    private final SigortaKaskoPersistenceJpaPort persistenceJpaPort;
+    //private final DomainEventPublisher domainEventPublisher;
+
+    @Override
+    public void post(SigortaKasko entity) {
+        entity.initIdGenerator();
+
+        /*domainEventPublisher.publish("sigorta-created-topic", SigortaCreatedEvent.builder()
+                .id(entity.getId())
+                .aracFiloId(entity.getAracFiloId())
+                .tip(entity.getTip())
+                .sigortaSirketi(entity.getSigortaSirketi())
+                .acente(entity.getAcente())
+                .policeNo(entity.getPoliceNo())
+                .baslangicTarihi(entity.getBaslangicTarihi())
+                .bitisTarihi(entity.getBitisTarihi())
+                .build());*/
+
+        persistenceJpaPort.persist(entity);
+        log.info("Persisted entity: {}", entity);
+    }
+
+    @Override
+    public void put(SigortaKasko entity) {
+        SigortaKasko existing = persistenceJpaPort.findById(entity.getId());
+        if (existing == null) {
+            throw new NotFoundException("Sigorta not found with id: " + entity.getId());
+        }
+        existing.updateFrom(entity);
+
+        /*domainEventPublisher.publish("sigorta-updated-topic", SigortaUpdatedEvent.builder()
+                .id(entity.getId())
+                .aracFiloId(entity.getAracFiloId())
+                .tip(entity.getTip())
+                .sigortaSirketi(entity.getSigortaSirketi())
+                .acente(entity.getAcente())
+                .policeNo(entity.getPoliceNo())
+                .baslangicTarihi(entity.getBaslangicTarihi())
+                .bitisTarihi(entity.getBitisTarihi())
+                .build());*/
+
+        persistenceJpaPort.merge(existing);
+        log.info("Updated entity: {}", entity);
+    }
+
+    @Override
+    public void deleteById(SigortaId sigortaId) {
+        SigortaKasko existing = persistenceJpaPort.findById(sigortaId);
+        if (existing == null) {
+            throw new NotFoundException("Sigorta not found with id: " + sigortaId);
+        }
+        
+        /*domainEventPublisher.publish("sigorta-deleted-topic", SigortaDeletedEvent.builder()
+                .id(sigortaId)
+                .aracFiloId(existing.getAracFiloId())
+                .build());*/
+
+        persistenceJpaPort.deleteById(existing.getId());
+        log.info("Deleted entity: {}", existing);
+    }
+}
+

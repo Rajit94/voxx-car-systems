@@ -1,0 +1,109 @@
+package tr.gov.voxx.car.system.adapter.out.jpa.persistence;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import tr.gov.voxx.car.system.adapter.out.jpa.entity.AracFiloEntity;
+import tr.gov.voxx.car.system.adapter.out.jpa.mapper.AracFiloJpaMapper;
+import tr.gov.voxx.car.system.adapter.out.jpa.repository.AracFiloJpaRepository;
+import tr.gov.voxx.car.system.adapter.out.jpa.repository.AracFirmaDetayJpaRepository;
+import tr.gov.voxx.car.system.application.port.out.AracFiloPersistenceJpaPort;
+import tr.gov.voxx.car.system.domain.entity.AracFilo;
+import tr.gov.voxx.car.system.domain.valueobject.AracFiloId;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.Optional;
+
+@Component
+@RequiredArgsConstructor
+public class AracFiloPersistenceJpaAdapter implements AracFiloPersistenceJpaPort {
+
+    private final AracFiloJpaRepository aracFiloJpaRepository;
+    private final AracFirmaDetayJpaRepository aracFirmaDetayJpaRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public AracFilo findById(AracFiloId aracFiloId) {
+        Optional<AracFiloEntity> entity = aracFiloJpaRepository.findById(aracFiloId.getValue());
+        if (entity.isEmpty()) throw new EntityNotFoundException("Filo arac not found: " + aracFiloId.getValue());
+        return AracFiloJpaMapper.toAracFilo(entity.orElse(null));
+    }
+
+    @Override
+    @Transactional
+    public void persist(AracFilo entity) {
+        AracFiloEntity aracFiloEntity = AracFiloJpaMapper.toEntity(entity);
+        aracFiloJpaRepository.save(aracFiloEntity);
+    }
+
+    @Override
+    @Transactional
+    public void merge(AracFilo entity) {
+        AracFiloEntity aracFiloEntity = AracFiloJpaMapper.toEntity(entity);
+        aracFiloJpaRepository.save(aracFiloEntity);
+    }
+
+
+    @Override
+    @Transactional
+    public void deleteById(AracFiloId aracFiloId) {
+        Optional<AracFiloEntity> entity = aracFiloJpaRepository.findById(aracFiloId.getValue());
+        entity.ifPresent(e -> {
+                    e.setDeleted(true);
+                    aracFiloJpaRepository.save(e);
+                }
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AracFilo> findAll() {
+        return AracFiloJpaMapper.toAracFiloList(
+                aracFiloJpaRepository.findByIsDeletedFalse()
+        );
+    }
+
+    @Override
+    public List<AracFilo> findByAktiflikDurumu(boolean isAktif) {
+        Integer durum = isAktif ? 1 : 0;
+
+        return AracFiloJpaMapper.toAracFiloList(
+                aracFiloJpaRepository.findByIsDeletedFalseAndFiloDurum(durum)
+        );
+    }
+
+    @Override
+    @Transactional
+    public void updateFiloDurum(String aracFiloId, Integer filoDurum) {
+        Optional<AracFiloEntity> entityOpt = aracFiloJpaRepository.findById(aracFiloId);
+        if (entityOpt.isPresent()) {
+            AracFiloEntity entity = entityOpt.get();
+            entity.setFiloDurum(filoDurum);
+            aracFiloJpaRepository.save(entity);
+        } else {
+            throw new EntityNotFoundException("AracFilo not found with id: " + aracFiloId);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AracFilo> findKiralikOlmayanAraclar() {
+        // Aktif kiralama sözleşmesi olan araç ID'lerini al
+        Instant now = Instant.now();
+        Set<String> aktifKiralananAracIds = aracFirmaDetayJpaRepository.findAktifKiralananAracIds(now)
+                .stream()
+                .collect(Collectors.toSet());
+        
+        // Tüm araçları al ve kiralık olmayanları filtrele
+        List<AracFiloEntity> tumAraclar = aracFiloJpaRepository.findByIsDeletedFalse();
+        List<AracFiloEntity> kiralikOlmayanAraclar = tumAraclar.stream()
+                .filter(arac -> !aktifKiralananAracIds.contains(arac.getId()))
+                .collect(Collectors.toList());
+        
+        return AracFiloJpaMapper.toAracFiloList(kiralikOlmayanAraclar);
+    }
+}

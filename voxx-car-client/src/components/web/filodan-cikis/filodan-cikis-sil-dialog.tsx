@@ -1,0 +1,60 @@
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { useDeleteFilodanCikisMutation } from "@/hooks/use-filodan-cikis-hooks";
+import type { FilodanCikis } from "@/schemas/filodan-cikis";
+import { RefreshCw } from "lucide-react";
+
+interface FilodanCikisDialogDeleteProps {
+	open: boolean;
+	close: () => void;
+	selectedFilodanCikis: FilodanCikis;
+}
+
+export default function FilodanCikisSilDialog({
+	open,
+	close,
+	selectedFilodanCikis,
+}: FilodanCikisDialogDeleteProps) {
+	const deleteFilodanCikisMutation = useDeleteFilodanCikisMutation(
+		selectedFilodanCikis.aracFiloId,
+		close,
+	);
+
+	return (
+		<Dialog open={open} onOpenChange={close}>
+			<DialogContent className="sm:max-w-[400px]">
+				<DialogHeader>
+				<DialogTitle>Seçili Filodan Çıkışı Sil</DialogTitle>
+				<DialogDescription>
+					Seçili filodan çıkış <i>{selectedFilodanCikis.alici}</i> silmek
+					istediğinizden emin misiniz? Bu işlem geri alınamaz.
+				</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<Button variant="outline" onClick={close}>
+						İptal
+					</Button>
+					<Button
+						variant="destructive"
+						onClick={() =>
+							deleteFilodanCikisMutation.mutateAsync(selectedFilodanCikis.id)
+						}
+						disabled={deleteFilodanCikisMutation.isPending}
+					>
+						{deleteFilodanCikisMutation.isPending ? (
+							<RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+						) : null}
+						Sil
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}

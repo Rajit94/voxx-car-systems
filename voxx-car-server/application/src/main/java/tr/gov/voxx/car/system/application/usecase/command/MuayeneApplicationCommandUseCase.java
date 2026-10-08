@@ -1,0 +1,87 @@
+package tr.gov.voxx.car.system.application.usecase.command;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import tr.gov.voxx.car.system.application.port.in.MuayeneApplicationCommandPort;
+import tr.gov.voxx.car.system.application.port.out.MuayenePersistenceJpaPort;
+import tr.gov.voxx.car.system.domain.entity.Muayene;
+import tr.gov.voxx.car.system.domain.exception.NotFoundException;
+import tr.gov.voxx.car.system.domain.valueobject.MuayeneId;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class MuayeneApplicationCommandUseCase implements MuayeneApplicationCommandPort {
+
+    private final MuayenePersistenceJpaPort persistenceJpaPort;
+    //private final DomainEventPublisher domainEventPublisher;
+
+    @Override
+    public void post(Muayene entity) {
+        entity.initIdGenerator();
+        /*domainEventPublisher.publish("muayene-created-topic", MuayeneCreatedEvent.builder()
+                .id(entity.getId())
+                .aracFiloId(entity.getAracFiloId())
+                .muayeneTipi(entity.getMuayeneTipi())
+                .makbuzNo(entity.getMakbuzNo())
+                .odeyenFirmaId(entity.getOdeyenFirmaId())
+                .gecikmeCezasi(entity.getGecikmeCezasi())
+                .aciklama(entity.getAciklama())
+                .yeri(entity.getYeri())
+                .odemeTipi(entity.getOdemeTipi())
+                .miktar(entity.getMiktar())
+                .odendi(entity.getOdendi())
+                .baslangicTarihi(entity.getBaslangicTarihi())
+                .bitisTarihi(entity.getBitisTarihi())
+                .build());*/
+        persistenceJpaPort.persist(entity);
+        log.info("Persisted entity: {}", entity);
+    }
+
+
+    @Override
+    public void put(Muayene entity) {
+        Muayene existing = persistenceJpaPort.findById(entity.getId());
+        if (existing == null) {
+            throw new NotFoundException("Muayene not found with id: " + entity.getId());
+        }
+        existing.updateFrom(entity);
+        /*domainEventPublisher.publish("muayene-updated-topic", MuayeneUpdatedEvent.builder()
+                .id(entity.getId())
+                .aracFiloId(entity.getAracFiloId())
+                .muayeneTipi(entity.getMuayeneTipi())
+                .makbuzNo(entity.getMakbuzNo())
+                .odeyenFirmaId(entity.getOdeyenFirmaId())
+                .gecikmeCezasi(entity.getGecikmeCezasi())
+                .aciklama(entity.getAciklama())
+                .yeri(entity.getYeri())
+                .odemeTipi(entity.getOdemeTipi())
+                .miktar(entity.getMiktar())
+                .odendi(entity.getOdendi())
+                .baslangicTarihi(entity.getBaslangicTarihi())
+                .bitisTarihi(entity.getBitisTarihi())
+                .build());*/
+        persistenceJpaPort.merge(existing);
+        log.info("Merged entity: {}", entity);
+    }
+
+    @Override
+    public void deleteById(MuayeneId muayeneId) {
+        Muayene existing = persistenceJpaPort.findById(muayeneId);
+        if (existing == null) {
+            throw new NotFoundException("Muayene not found with id: " + muayeneId);
+        }
+
+        /*domainEventPublisher.publish("muayene-deleted-topic", MuayeneDeletedEvent.builder()
+                .id(muayeneId)
+                .aracFiloId(existing.getAracFiloId())
+                .build());*/
+        persistenceJpaPort.deleteById(existing.getId());
+        log.info("Deleted entity: {}", existing);
+    }
+}
+
+
+
+

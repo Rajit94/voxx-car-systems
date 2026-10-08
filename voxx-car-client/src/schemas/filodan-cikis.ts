@@ -1,0 +1,24 @@
+import { FilodanCikisNedeniListesi } from "@/enums";
+import { z } from "zod";
+
+export const filodanCikisCreateSchema = z.object({
+	aracFiloId: z.string(),
+	filodanCikisNedeni: z.enum(FilodanCikisNedeniListesi),
+	filodanCikisTarihi: z.date(),
+	alici: z.string(),
+	anahtarTeslimFiyati: z.coerce.number(),
+	aracDevirGiderleri: z.coerce.number(),
+	faturaYukle: z.string().optional(), // Base64 formatında fatura dosyası
+	aciklama: z.string(),
+});
+export type CreateFilodanCikisRequest = z.infer<
+	typeof filodanCikisCreateSchema
+>;
+
+export const filodanCikisUpdateSchema = filodanCikisCreateSchema.extend({
+	id: z.string(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+	deleted: z.boolean(),
+});
+export type FilodanCikis = z.infer<typeof filodanCikisUpdateSchema>;

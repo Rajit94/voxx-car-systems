@@ -1,0 +1,204 @@
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/components/ui/dialog";
+import {
+	HasarliParcaListesiLabel,
+	HasarTipiListesi,
+	HasarTipiListesiLabel,
+	type HasarliParca,
+} from "@/enums";
+import { useAppForm } from "@/hooks/demo.form";
+import { cn } from "@/lib/utils";
+import {
+	hasarCreateSchema,
+	hasarUpdateSchema,
+	type Hasar,
+} from "@/schemas/hasar";
+import type { Dispatch, SetStateAction } from "react";
+
+interface HasarDialogCreateProps {
+	mode: "create";
+	aracFiloId: string;
+	open: boolean;
+	close: () => void;
+	hasarliParca: HasarliParca;
+	setSelectedPart: Dispatch<SetStateAction<HasarliParca | null>>;
+	setSelectedParts: Dispatch<SetStateAction<Hasar[]>>;
+	setUpdatedParts: Dispatch<SetStateAction<string[]>>;
+}
+
+interface HasarDialogUpdateProps {
+	mode: "update";
+	aracFiloId: string;
+	open: boolean;
+	close: () => void;
+	hasarliParca: HasarliParca;
+	initialValues: Hasar;
+	setSelectedPart: Dispatch<SetStateAction<HasarliParca | null>>;
+	setSelectedParts: Dispatch<SetStateAction<Hasar[]>>;
+	setUpdatedParts: Dispatch<SetStateAction<string[]>>;
+}
+
+type HasarDialogProps = HasarDialogCreateProps | HasarDialogUpdateProps;
+
+export default function HasarDialog(props: HasarDialogProps) {
+	const {
+		mode,
+		open,
+		close,
+		aracFiloId,
+		hasarliParca,
+		setSelectedPart,
+		setSelectedParts,
+		setUpdatedParts,
+	} = props;
+
+	const hasarTipiOptions = HasarTipiListesi.slice(
+		0,
+		HasarTipiListesi.length - 1,
+	).map((tip) => ({
+		label: HasarTipiListesiLabel[tip],
+		value: tip,
+	}));
+
+	const form = useAppForm({
+		defaultValues:
+			mode === "create"
+				? {
+						aracFiloId,
+						hasarliParca,
+						hasarTipi:
+							hasarliParca === "GENEL"
+								? HasarTipiListesi[0]
+								: HasarTipiListesi[4],
+						aciklama: "",
+					}
+				: props.initialValues,
+		validators: {
+			// @ts-expect-error
+			onChange: mode === "create" ? hasarCreateSchema : hasarUpdateSchema,
+		},
+		onSubmit: async ({ formApi, value }) => {
+			try {
+				if (mode === "create") {
+					const newPart = {
+						id: `new-id-${new Date().getTime()}`,
+						aracFiloId,
+						aciklama: value.aciklama,
+						hasarliParca: value.hasarliParca,
+						hasarTipi: value.hasarTipi,
+						deleted: false,
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					};
+					
+					setSelectedParts((prevState) => [
+						...prevState,
+						newPart,
+					]);
+				} else if (mode === "update") {
+					setSelectedParts((prevState) =>
+						prevState.map((part) => {
+							if (part.hasarliParca === value.hasarliParca) {
+								// Değişiklik var mı kontrol et
+								const hasChanges = 
+									part.hasarTipi !== value.hasarTipi ||
+									part.aciklama !== value.aciklama;
+								
+								if (hasChanges) {
+									setUpdatedParts((prev) =>
+										prev.includes(part.id) ? prev : [...prev, part.id],
+									);
+								}
+
+								return {
+									...part,
+									hasarTipi: value.hasarTipi,
+									aciklama: value.aciklama,
+									updatedAt: new Date().toISOString(),
+								};
+							}
+							return part;
+						}),
+					);
+				}
+				
+				// Dialog'u kapat ve form'u reset et
+				close();
+				formApi.reset();
+			} catch (_error) {
+				console.error("Form submission error:", _error);
+			}
+		},
+	});
+
+	return (
+		<Dialog
+			open={open}
+			onOpenChange={(isOpen) => {
+				if (!isOpen) {
+					close();
+					form.reset();
+				}
+			}}
+		>
+			<DialogContent className="sm:max-w-[600px] lg:max-w-[800px]">
+				<DialogHeader>
+					<DialogTitle>
+						{`${
+							mode === "create" ? "Yeni Hasar Ekle" : "Seçili Hasarı Güncelle"
+						} - ${HasarliParcaListesiLabel[hasarliParca]}`}
+					</DialogTitle>
+				</DialogHeader>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-6"
+				>
+					<div className={cn(hasarliParca === "GENEL" && "hidden")}>
+						<form.AppField name="hasarTipi">
+							{(field) => (
+								<field.Select label="Hasar Tipi" values={hasarTipiOptions} />
+							)}
+						</form.AppField>
+					</div>
+
+					<form.AppField name="aciklama">
+						{(field) => <field.TextArea label="Açıklama / Not" />}
+					</form.AppField>
+
+					<DialogFooter>
+						<Button variant="outline" onClick={close}>
+							İptal
+						</Button>
+						<Button
+							type="submit"
+							// disabled={
+							// 	mode === "create"
+							// 		? createHasarMutation.isPending
+							// 		: updateHasarMutation!.isPending
+							// }
+						>
+							{/* {mode === "create" ? (
+								createHasarMutation.isPending
+							) : updateHasarMutation!.isPending ? (
+								<RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+							) : null} */}
+							{mode === "create"
+								? hasarliParca === "GENEL" ? "Yeni Not Ekle" : "Yeni Hasar Ekle"
+								: hasarliParca === "GENEL" ? "Seçili Notu Güncelle" : "Seçili Hasarı Güncelle"}
+						</Button>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
+	);
+}

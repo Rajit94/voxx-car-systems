@@ -1,0 +1,94 @@
+package tr.gov.voxx.car.system.adapter.out.jpa.mapper;
+
+import lombok.experimental.UtilityClass;
+import tr.gov.voxx.car.system.adapter.out.jpa.entity.BakimEntity;
+import tr.gov.voxx.car.system.domain.entity.Bakim;
+import tr.gov.voxx.car.system.domain.valueobject.AracFiloId;
+import tr.gov.voxx.car.system.domain.valueobject.BakimId;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@UtilityClass
+public class BakimJpaMapper {
+
+    public static Bakim toBakim(BakimEntity entity) {
+        if (entity == null) return null;
+
+        return Bakim.builder()
+                .id(new BakimId(entity.getId()))
+                .aracFiloId(new AracFiloId(entity.getAracFiloId()))
+                .bakimNedeni(entity.getBakimNedeni())
+                .parca(entity.getParca())
+                .parcaTutari(entity.getParcaTutari())
+                .iscilikTutari(entity.getIscilikTutari())
+                .toplamTutar(entity.getToplamTutar())
+                .fatura(entity.getFatura())
+                .aciklama(entity.getAciklama())
+                .bakimOdeyenFirma(entity.getBakimOdeyenFirma())
+                .aracGuncelKm(entity.getAracGuncelKm())
+                .bakimAraligi(entity.getBakimAraligi())
+                .parcaAdedi(entity.getParcaAdedi())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .isDeleted(entity.isDeleted())
+                .build();
+    }
+
+    public static BakimEntity toEntity(Bakim bakim) {
+        if (bakim == null) return null;
+
+        BakimEntity entity = new BakimEntity();
+        entity.setId(bakim.getId().getValue());
+        entity.setAracFiloId(bakim.getAracFiloId().getValue());
+        entity.setBakimNedeni(bakim.getBakimNedeni());
+        entity.setParca(bakim.getParca());
+        entity.setParcaTutari(bakim.getParcaTutari());
+        entity.setIscilikTutari(bakim.getIscilikTutari());
+        entity.setToplamTutar(bakim.getToplamTutar());
+        entity.setFatura(bakim.getFatura());
+        entity.setAciklama(bakim.getAciklama());
+        entity.setBakimOdeyenFirma(bakim.getBakimOdeyenFirma());
+        entity.setAracGuncelKm(bakim.getAracGuncelKm());
+        entity.setBakimAraligi(bakim.getBakimAraligi());
+        entity.setParcaAdedi(bakim.getParcaAdedi());
+        return entity;
+    }
+
+    public static List<Bakim> toBakimList(List<BakimEntity> entities) {
+        if (entities == null) return List.of();
+        return entities.stream().map(BakimJpaMapper::toBakim).collect(Collectors.toList());
+    }
+
+    /*public static Bakim toBakimFromBakimCreatedEvent(BakimCreatedEvent event) {
+        return Bakim.builder()
+                .id(event.id())
+                .aracFiloId(event.aracFiloId())
+                .bakimNedeni(event.bakimNedeni())
+                .parca(event.parca())
+                .parcaTutari(event.parcaTutari())
+                .iscilikTutari(event.iscilikTutari())
+                .toplamTutar(event.toplamTutar())
+                .faturaNo(event.faturaNo())
+                .fatura(event.fatura())
+                .aciklama(event.aciklama())
+                .odeyenFirmaId(event.odeyenFirmaId())
+                .build();
+    }
+
+    public static Bakim toBakimFromBakimUpdatedEvent(BakimUpdatedEvent event) {
+        return Bakim.builder()
+                .id(event.id())
+                .aracFiloId(event.aracFiloId())
+                .bakimNedeni(event.bakimNedeni())
+                .parca(event.parca())
+                .parcaTutari(event.parcaTutari())
+                .iscilikTutari(event.iscilikTutari())
+                .toplamTutar(event.toplamTutar())
+                .faturaNo(event.faturaNo())
+                .fatura(event.fatura())
+                .aciklama(event.aciklama())
+                .odeyenFirmaId(event.odeyenFirmaId())
+                .build();
+    }*/
+}
